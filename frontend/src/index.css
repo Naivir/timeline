@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --timeline-glow: rgba(15, 118, 110, 0.25);
+  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top right, #fff7ed 0%, #f8f6f1 60%);
+}
+
+.timeline-line {
+  box-shadow: 0 0 0 6px var(--timeline-glow);
+}
