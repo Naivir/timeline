@@ -3,6 +3,8 @@ node_modules/
 .npm-cache/
 dist/
 build/
+*.tsbuildinfo
+.vite/
 *.log
 .env*
 

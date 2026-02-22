@@ -3,15 +3,93 @@
 @tailwind utilities;
 
 :root {
-  --timeline-glow: rgba(15, 118, 110, 0.25);
+  --timeline-glow: rgba(0, 0, 0, 0.22);
+  --timeline-fade: #ffffff;
   font-family: 'Avenir Next', 'Segoe UI', sans-serif;
 }
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top right, #fff7ed 0%, #f8f6f1 60%);
+  background: #ffffff;
+}
+
+.timeline-shell {
+  position: relative;
+  width: 100vw;
+  margin: 0 auto;
+}
+
+.timeline-surface {
+  position: relative;
+  height: 260px;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
 }
 
 .timeline-line {
-  box-shadow: 0 0 0 6px var(--timeline-glow);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: rgb(0 0 0);
+  box-shadow: 0 0 0 1px var(--timeline-glow), 0 8px 22px rgb(0 0 0 / 0.08);
+}
+
+.timeline-guide {
+  position: absolute;
+  top: calc(50% - 105px);
+  width: 1px;
+  height: 210px;
+  transform: translateX(-50%);
+  background: rgb(0 0 0 / 0.18);
+}
+
+.timeline-label {
+  position: absolute;
+  top: calc(50% + 28px);
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: rgb(30 41 59 / 0.92);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-fade-left,
+.timeline-fade-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 180px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.timeline-fade-left {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    var(--timeline-fade) 0%,
+    rgb(255 255 255 / 0.94) 34%,
+    rgb(255 255 255 / 0.5) 62%,
+    transparent 100%
+  );
+}
+
+.timeline-fade-right {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    var(--timeline-fade) 0%,
+    rgb(255 255 255 / 0.94) 34%,
+    rgb(255 255 255 / 0.5) 62%,
+    transparent 100%
+  );
 }
