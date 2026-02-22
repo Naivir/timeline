@@ -39,7 +39,7 @@ export function panTimeline(state: TimelineState, deltaPx: number): TimelineStat
 
 export function zoomTimeline(state: TimelineState, deltaY: number, anchorX: number): TimelineState {
   const duration = state.endMs - state.startMs
-  const zoomFactor = deltaY < 0 ? 0.95 : 1.05
+  const zoomFactor = deltaY < 0 ? 0.94 : 1.06
   const unclamped = duration * zoomFactor
   const clamped = Math.min(MAX_DURATION_MS, Math.max(MIN_DURATION_MS, unclamped))
 

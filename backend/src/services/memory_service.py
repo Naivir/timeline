@@ -7,7 +7,6 @@ from sqlmodel import Session
 
 from src.models.memory import AnchorType, Memory
 from src.models.memory_schemas import (
-    DeleteMemoryResponse,
     MemoryCreateRequest,
     MemoryListResponse,
     MemoryResponse,
@@ -19,10 +18,6 @@ from src.repositories.memory_repository import MemoryRepository
 
 
 class MemoryNotFoundError(Exception):
-    pass
-
-
-class UndoExpiredError(Exception):
     pass
 
 
@@ -44,18 +39,10 @@ class MemoryService:
             raise MemoryNotFoundError(memory_id)
         return self._to_response(row)
 
-    def delete_memory(self, session_id: str, memory_id: str) -> DeleteMemoryResponse:
-        deletion = self.repo.delete_memory(session_id, memory_id)
-        if deletion is None:
+    def delete_memory(self, session_id: str, memory_id: str) -> None:
+        deleted = self.repo.delete_memory(session_id, memory_id)
+        if not deleted:
             raise MemoryNotFoundError(memory_id)
-        return DeleteMemoryResponse(deletionId=deletion.deletion_id, undoExpiresAt=deletion.expires_at)
-
-    def undo_delete(self, session_id: str, deletion_id: str) -> MemoryResponse:
-        row = self.repo.undo_delete(session_id, deletion_id)
-        if row is None:
-            # disambiguate missing vs expired by checking deletion record directly
-            raise UndoExpiredError(deletion_id)
-        return self._to_response(row)
 
     def _to_response(self, row: Memory) -> MemoryResponse:
         if row.anchor_type == AnchorType.POINT:

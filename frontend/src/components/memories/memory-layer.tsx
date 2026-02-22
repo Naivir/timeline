@@ -1,8 +1,9 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { type MemoryItem, type MemoryUpdateRequest } from '../../services/memories/memory-types'
-import { dragDeltaToTimeMs, resizeRangeEnd, resizeRangeStart } from '../../services/memories/memory-drag'
+import { clampVerticalRatio, dragDeltaToTimeMs, resizeRangeEnd, resizeRangeStart } from '../../services/memories/memory-drag'
 import { applyDeterministicDensity } from '../../services/memories/memory-density'
+import { buildMemoryHoverSnippet, MEMORY_HOVER_DELAY_MS } from '../../services/memories/memory-hover'
 import { timeToX } from '../../services/timeline/time-scale-mapping'
 import { MemoryMarker } from './memory-marker'
 import { MemoryRange } from './memory-range'
@@ -13,10 +14,10 @@ type MemoryLayerProps = {
   startMs: number
   endMs: number
   widthPx: number
-  isPlacementArmed: boolean
+  surfaceHeight: number
   onSelect: (id: string | null) => void
-  onCreateAt: (timeMs: number, verticalRatio: number) => void
   onUpdateMemory: (memoryId: string, payload: MemoryUpdateRequest) => void
+  resizeMode?: boolean
 }
 
 function anchorToTimeMs(memory: MemoryItem): number {
@@ -26,12 +27,19 @@ function anchorToTimeMs(memory: MemoryItem): number {
 }
 
 type DragState =
-  | { mode: 'point'; memory: MemoryItem; startX: number; moved: boolean }
-  | { mode: 'range-body'; memory: MemoryItem; startX: number; moved: boolean }
+  | { mode: 'point'; memory: MemoryItem; startX: number; startY: number; moved: boolean }
+  | {
+      mode: 'range-body'
+      memory: MemoryItem
+      startX: number
+      startY: number
+      moved: boolean
+    }
   | {
       mode: 'range-handle'
       memory: MemoryItem
       startX: number
+      startY: number
       side: 'start' | 'end'
       moved: boolean
     }
@@ -42,13 +50,20 @@ export function MemoryLayer({
   startMs,
   endMs,
   widthPx,
-  isPlacementArmed,
+  surfaceHeight,
   onSelect,
-  onCreateAt,
   onUpdateMemory,
+  resizeMode = false,
 }: MemoryLayerProps) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const dragStateRef = useRef<DragState | null>(null)
+  const hoverTimerRef = useRef<number | null>(null)
+  const [hoverPreview, setHoverPreview] = useState<{
+    memory: MemoryItem
+    x: number
+    yRatio: number
+  } | null>(null)
+  const hoverSnippet = hoverPreview ? buildMemoryHoverSnippet(hoverPreview.memory) : ''
 
   const projected = useMemo(
     () =>
@@ -67,21 +82,26 @@ export function MemoryLayer({
     [memories, startMs, endMs, widthPx],
   )
 
-  const commitDrag = (event: PointerEvent) => {
+  const applyDrag = (event: PointerEvent) => {
     const dragState = dragStateRef.current
     if (!dragState) return
 
     if (!dragState.moved) return
 
     const deltaX = event.clientX - dragState.startX
+    const deltaY = event.clientY - dragState.startY
     const deltaMs = dragDeltaToTimeMs(deltaX, widthPx, startMs, endMs)
+    const deltaRatio = surfaceHeight > 0 ? deltaY / surfaceHeight : 0
 
     if (dragState.mode === 'point') {
       if (dragState.memory.anchor.type !== 'point') return
       const nextTime = new Date(
         new Date(dragState.memory.anchor.timestamp).getTime() + deltaMs,
       ).toISOString()
-      onUpdateMemory(dragState.memory.id, { anchor: { type: 'point', timestamp: nextTime } })
+      onUpdateMemory(dragState.memory.id, {
+        anchor: { type: 'point', timestamp: nextTime },
+        verticalRatio: clampVerticalRatio((dragState.memory.verticalRatio ?? 0.3) + deltaRatio),
+      })
       return
     }
 
@@ -94,6 +114,7 @@ export function MemoryLayer({
       const nextEnd = new Date(currentEnd + deltaMs).toISOString()
       onUpdateMemory(dragState.memory.id, {
         anchor: { type: 'range', start: nextStart, end: nextEnd },
+        verticalRatio: clampVerticalRatio((dragState.memory.verticalRatio ?? 0.3) + deltaRatio),
       })
       return
     }
@@ -123,13 +144,16 @@ export function MemoryLayer({
   const onGlobalPointerMove = (event: PointerEvent) => {
     const dragState = dragStateRef.current
     if (!dragState) return
-    if (Math.abs(event.clientX - dragState.startX) >= 4) {
+    const dx = event.clientX - dragState.startX
+    const dy = event.clientY - dragState.startY
+    if (Math.hypot(dx, dy) >= 4) {
       dragStateRef.current = { ...dragState, moved: true }
     }
+    applyDrag(event)
   }
 
   const endDrag = (event: PointerEvent) => {
-    commitDrag(event)
+    applyDrag(event)
     dragStateRef.current = null
     window.removeEventListener('pointermove', onGlobalPointerMove)
     window.removeEventListener('pointerup', endDrag)
@@ -143,27 +167,20 @@ export function MemoryLayer({
     window.addEventListener('pointercancel', endDrag)
   }
 
+  const clearHoverTimer = () => {
+    if (hoverTimerRef.current == null) return
+    window.clearTimeout(hoverTimerRef.current)
+    hoverTimerRef.current = null
+  }
+
+  useEffect(() => {
+    if (!resizeMode) return
+    clearHoverTimer()
+    setHoverPreview(null)
+  }, [resizeMode])
+
   return (
-    <div
-      ref={rootRef}
-      className="memory-layer"
-      data-testid="memory-layer"
-      onClick={(event) => {
-        const target = event.target as HTMLElement
-        if (target.closest('[data-memory-interactive="true"]')) return
-
-        onSelect(null)
-        if (!isPlacementArmed) return
-
-        const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
-        const x = event.clientX - rect.left
-        const y = event.clientY - rect.top
-        const ratio = widthPx > 0 ? x / widthPx : 0
-        const verticalRatio = rect.height > 0 ? y / rect.height : 0.3
-        const timeMs = startMs + ratio * (endMs - startMs)
-        onCreateAt(timeMs, verticalRatio)
-      }}
-    >
+    <div ref={rootRef} className="memory-layer" data-testid="memory-layer">
       {projected.map(({ memory, x, xStart, xEnd }) =>
         memory.anchor.type === 'range' ? (
           <MemoryRange
@@ -172,21 +189,30 @@ export function MemoryLayer({
             xStart={xStart ?? x}
             xEnd={xEnd ?? x}
             yRatio={memory.verticalRatio ?? 0.3}
-            surfaceHeight={260}
+            surfaceHeight={surfaceHeight}
             selected={memory.id === selectedId}
             onSelect={onSelect}
-            onDragBodyStart={(dragMemory, clientX) => {
-              startGlobalDrag({ mode: 'range-body', memory: dragMemory, startX: clientX, moved: false })
+            onDragBodyStart={(dragMemory, clientX, clientY) => {
+              if (!resizeMode) return
+              startGlobalDrag({
+                mode: 'range-body',
+                memory: dragMemory,
+                startX: clientX,
+                startY: clientY,
+                moved: false,
+              })
             }}
-            onDragHandleStart={(dragMemory, side, clientX) => {
+            onDragHandleStart={(dragMemory, side, clientX, clientY) => {
               startGlobalDrag({
                 mode: 'range-handle',
                 memory: dragMemory,
                 side,
                 startX: clientX,
+                startY: clientY,
                 moved: false,
               })
             }}
+            resizeMode={resizeMode}
           />
         ) : (
           <MemoryMarker
@@ -194,15 +220,49 @@ export function MemoryLayer({
             memory={memory}
             x={x}
             yRatio={memory.verticalRatio ?? 0.3}
-            surfaceHeight={260}
+            surfaceHeight={surfaceHeight}
             selected={memory.id === selectedId}
             onSelect={onSelect}
-            onDragStart={(dragMemory, clientX) => {
-              startGlobalDrag({ mode: 'point', memory: dragMemory, startX: clientX, moved: false })
+            onDragStart={(dragMemory, clientX, clientY) => {
+              if (!resizeMode) return
+              startGlobalDrag({
+                mode: 'point',
+                memory: dragMemory,
+                startX: clientX,
+                startY: clientY,
+                moved: false,
+              })
             }}
+            onHoverStart={(hoverMemory, hoverX, hoverYRatio) => {
+              if (resizeMode) return
+              clearHoverTimer()
+              hoverTimerRef.current = window.setTimeout(() => {
+                setHoverPreview({ memory: hoverMemory, x: hoverX, yRatio: hoverYRatio })
+              }, MEMORY_HOVER_DELAY_MS)
+            }}
+            onHoverEnd={() => {
+              clearHoverTimer()
+              setHoverPreview(null)
+            }}
+            resizeMode={resizeMode}
           />
         ),
       )}
+      {hoverPreview ? (
+        <div
+          className="memory-hover-tooltip"
+          data-testid="memory-hover-tooltip"
+          style={{
+            left: `${hoverPreview.x}px`,
+            top: `${Math.max(8, hoverPreview.yRatio * surfaceHeight - 48)}px`,
+          }}
+        >
+          <strong>{hoverPreview.memory.title}</strong>
+          {hoverSnippet ? (
+            <span>{hoverSnippet}</span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

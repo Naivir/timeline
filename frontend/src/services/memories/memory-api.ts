@@ -39,7 +39,7 @@ export async function updateMemory(memoryId: string, payload: MemoryUpdateReques
   return (await response.json()) as MemoryItem
 }
 
-export async function deleteMemory(memoryId: string, sessionId = DEFAULT_SESSION_ID): Promise<{ deletionId: string; undoExpiresAt: string }> {
+export async function deleteMemory(memoryId: string, sessionId = DEFAULT_SESSION_ID): Promise<void> {
   const response = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/memories/${memoryId}`, {
     method: 'DELETE',
     headers: { Accept: 'application/json' }
@@ -47,16 +47,5 @@ export async function deleteMemory(memoryId: string, sessionId = DEFAULT_SESSION
   if (!response.ok) {
     throw new Error('Failed to delete memory')
   }
-  return (await response.json()) as { deletionId: string; undoExpiresAt: string }
-}
-
-export async function undoDelete(deletionId: string, sessionId = DEFAULT_SESSION_ID): Promise<MemoryItem> {
-  const response = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/memories/deletions/${deletionId}/undo`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' }
-  })
-  if (!response.ok) {
-    throw new Error('Failed to undo delete')
-  }
-  return (await response.json()) as MemoryItem
+  return
 }

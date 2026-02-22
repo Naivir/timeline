@@ -19,7 +19,7 @@ def test_cancel_discard_equivalent_delete_removes_created_memory(client) -> None
     assert any(memory['id'] == created_id for memory in before.json()['memories'])
 
     deleted = client.delete(f'/api/v1/sessions/timeline-main/memories/{created_id}')
-    assert deleted.status_code == 200
+    assert deleted.status_code == 204
 
     after = client.get('/api/v1/sessions/timeline-main/memories')
     assert after.status_code == 200

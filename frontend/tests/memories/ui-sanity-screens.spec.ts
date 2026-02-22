@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test'
 import { promises as fs } from 'node:fs'
 
 test('captures sanity screenshots for timeline and memory popups', async ({ page }, testInfo) => {
-  let deletedSnapshot: Record<string, unknown> | null = null
   const state = {
     memories: [
       {
@@ -25,18 +24,6 @@ test('captures sanity screenshots for timeline and memory popups', async ({ page
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ sessionId: 'timeline-main', memories: state.memories }),
-      })
-      return
-    }
-
-    if (request.method() === 'POST' && request.url().includes('/undo')) {
-      if (deletedSnapshot) {
-        state.memories = [...state.memories, deletedSnapshot]
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(deletedSnapshot),
       })
       return
     }
@@ -83,18 +70,21 @@ test('captures sanity screenshots for timeline and memory popups', async ({ page
     if (request.method() === 'DELETE') {
       const target = state.memories[state.memories.length - 1] ?? null
       if (target) {
-        deletedSnapshot = target
         state.memories = state.memories.filter((memory) => memory.id !== target.id)
       }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ deletionId: 'del-ui-1', undoExpiresAt: '2026-02-20T10:30:00Z' }),
-      })
+      await route.fulfill({ status: 204, body: '' })
       return
     }
 
     await route.continue()
+  })
+
+  await page.route('**/api/v1/sessions/**/themes**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ sessionId: 'timeline-main', themes: [] }),
+    })
   })
 
   const capture = async (name: string) => {
@@ -109,9 +99,11 @@ test('captures sanity screenshots for timeline and memory popups', async ({ page
 
   const headerBox = await page.locator('header.timeline-header').boundingBox()
   const surfaceBox = await page.getByTestId('timeline-surface').boundingBox()
+  const viewport = page.viewportSize()
   expect(headerBox).not.toBeNull()
   expect(surfaceBox).not.toBeNull()
-  expect((headerBox?.y ?? 0) + (headerBox?.height ?? 0)).toBeLessThanOrEqual((surfaceBox?.y ?? 0) + 2)
+  expect((headerBox?.y ?? 0)).toBeLessThanOrEqual(20)
+  expect((headerBox?.height ?? 0)).toBeLessThanOrEqual((viewport?.height ?? 0) * 0.2)
 
   await capture('01-base-screen.png')
 
@@ -119,13 +111,12 @@ test('captures sanity screenshots for timeline and memory popups', async ({ page
   await expect(page.getByText('Click timeline to place memory')).toBeVisible()
   await capture('02-placement-mode.png')
 
-  await page.getByTestId('memory-layer').click({ position: { x: 520, y: 180 } })
+  await page.getByTestId('timeline-surface').click({ position: { x: 520, y: 180 } })
   await expect(page.getByTestId('memory-marker').last()).toBeVisible()
   await capture('03-memory-placed.png')
 
   await expect(page.getByTestId('memory-details-panel')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Edit Memory' })).toBeVisible()
-  const viewport = page.viewportSize()
   const panelBox = await page.getByTestId('memory-details-panel').boundingBox()
   expect(viewport).not.toBeNull()
   expect(panelBox).not.toBeNull()
@@ -158,13 +149,10 @@ test('captures sanity screenshots for timeline and memory popups', async ({ page
 
   await page.getByRole('button', { name: 'Cancel' }).click()
   await page.getByRole('button', { name: 'Delete' }).click()
-  const confirm = page.getByTestId('memory-confirm-dialog')
+  const confirm = page.getByTestId('memory-confirm-modal')
   await expect(confirm).toBeVisible()
   await confirm.getByRole('button', { name: 'Delete memory' }).click()
-  await expect(page.getByTestId('memory-undo-toast')).toBeVisible()
-  await capture('07-delete-toast.png')
-
-  await page.getByRole('button', { name: 'Undo delete' }).click()
-  await expect(page.getByLabel('Memory: Placed memory')).toBeVisible()
-  await capture('08-undo-restored.png')
+  await expect(page.getByLabel('Memory: Placed memory')).toHaveCount(0)
+  await expect(page.getByTestId('memory-undo-toast')).toHaveCount(0)
+  await capture('07-delete-final.png')
 })

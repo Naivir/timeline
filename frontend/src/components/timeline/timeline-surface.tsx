@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { MemoryLayer } from '../../components/memories/memory-layer'
+import { ThemeLayer } from '../../components/themes/theme-layer'
 import type { MemoryItem, MemoryUpdateRequest } from '../../services/memories/memory-types'
+import type { ThemeItem, ThemeUpdateRequest } from '../../services/themes/theme-types'
 import { generateLabelTicks } from '../../services/timeline/label-ticks'
 import {
   createInitialTimelineState,
@@ -15,28 +17,45 @@ import {
   shouldApplyVerticalWheelZoom,
 } from '../../services/timeline/wheel-zoom'
 
+export const TIMELINE_SURFACE_HEIGHT_PX = 520
+
 type TimelineSurfaceProps = {
   memories?: MemoryItem[]
+  themes?: ThemeItem[]
   selectedMemoryId?: string | null
+  selectedThemeId?: string | null
   onSelectMemory?: (memoryId: string | null) => void
+  onSelectTheme?: (themeId: string | null) => void
   onPlaceMemoryAt?: (timeMs: number, verticalRatio: number) => void
+  onCreateThemeRange?: (startMs: number, endMs: number) => void
   onUpdateMemory?: (memoryId: string, payload: MemoryUpdateRequest) => void
-  isPlacementArmed?: boolean
+  onUpdateTheme?: (themeId: string, payload: ThemeUpdateRequest) => void
+  mode?: 'none' | 'memory' | 'theme'
+  resizeMode?: boolean
 }
 
 export function TimelineSurface({
   memories = [],
+  themes = [],
   selectedMemoryId = null,
+  selectedThemeId = null,
   onSelectMemory,
+  onSelectTheme,
   onPlaceMemoryAt,
+  onCreateThemeRange,
   onUpdateMemory,
-  isPlacementArmed = false,
+  onUpdateTheme,
+  mode = 'none',
+  resizeMode = false,
 }: TimelineSurfaceProps) {
   const [timelineState, setTimelineState] = useState<TimelineState>(() => createInitialTimelineState())
   const [isDragging, setIsDragging] = useState(false)
   const [lastX, setLastX] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement | null>(null)
   const verticalWheelStateRef = useRef(createVerticalWheelZoomState())
+
+  const isMemoryPlacementArmed = mode === 'memory'
+  const isThemePlacementArmed = mode === 'theme'
 
   const ticks = useMemo(
     () =>
@@ -71,7 +90,7 @@ export function TimelineSurface({
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (event) => {
     if (event.button !== 0) return
-    if (isPlacementArmed) return
+    if (isMemoryPlacementArmed || isThemePlacementArmed) return
     setIsDragging(true)
     setLastX(event.clientX)
     if ('setPointerCapture' in event.currentTarget) {
@@ -80,7 +99,7 @@ export function TimelineSurface({
   }
 
   const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (event) => {
-    if (isPlacementArmed) return
+    if (isMemoryPlacementArmed || isThemePlacementArmed) return
     if (!isDragging || lastX == null) return
     const delta = event.clientX - lastX
     setLastX(event.clientX)
@@ -93,10 +112,31 @@ export function TimelineSurface({
     if ('releasePointerCapture' in event.currentTarget) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
+
+    const target = event.target as HTMLElement
+    const clickedInteractive =
+      target.closest('[data-memory-interactive="true"]') != null ||
+      target.closest('[data-testid="theme-block"]') != null
+
+    if (!clickedInteractive && isMemoryPlacementArmed) {
+      const rect = ref.current?.getBoundingClientRect()
+      if (!rect) return
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      const ratio = timelineState.widthPx > 0 ? x / timelineState.widthPx : 0
+      const verticalRatio = rect.height > 0 ? y / rect.height : 0.3
+      const timeMs = timelineState.startMs + ratio * (timelineState.endMs - timelineState.startMs)
+      onPlaceMemoryAt?.(timeMs, verticalRatio)
+      return
+    }
+
+    if (!clickedInteractive && !isMemoryPlacementArmed && !isThemePlacementArmed) {
+      onSelectMemory?.(null)
+      onSelectTheme?.(null)
+    }
   }
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
-    // Keep zoom behavior owned by the timeline so the page never scrolls/zooms.
     event.preventDefault()
     const rect = ref.current?.getBoundingClientRect()
     const anchorX = rect ? event.clientX - rect.left : timelineState.widthPx / 2
@@ -129,7 +169,7 @@ export function TimelineSurface({
     <section className="timeline-shell" aria-label="Timeline interaction surface">
       <div
         ref={ref}
-        className={`timeline-surface ${isPlacementArmed ? 'timeline-surface-placement' : ''}`}
+        className={`timeline-surface ${isMemoryPlacementArmed || isThemePlacementArmed ? 'timeline-surface-placement' : ''} ${resizeMode ? 'timeline-surface-resize' : ''}`}
         data-testid="timeline-surface"
         data-start-ms={timelineState.startMs}
         data-end-ms={timelineState.endMs}
@@ -143,6 +183,21 @@ export function TimelineSurface({
         <div className="timeline-fade-left" />
         <div className="timeline-fade-right" />
 
+        <ThemeLayer
+          themes={themes}
+          selectedThemeId={selectedThemeId}
+          startMs={timelineState.startMs}
+          endMs={timelineState.endMs}
+          widthPx={timelineState.widthPx}
+          surfaceHeight={TIMELINE_SURFACE_HEIGHT_PX}
+          isInteractive={!isMemoryPlacementArmed && (isThemePlacementArmed || themes.length > 0)}
+          isPlacementArmed={isThemePlacementArmed}
+          resizeMode={resizeMode}
+          onCreateTheme={(s, e) => onCreateThemeRange?.(s, e)}
+          onSelectTheme={(themeId) => onSelectTheme?.(themeId)}
+          onUpdateTheme={(themeId, payload) => onUpdateTheme?.(themeId, payload)}
+        />
+
         <div className="timeline-line" aria-label="Timeline axis" />
 
         <MemoryLayer
@@ -151,10 +206,10 @@ export function TimelineSurface({
           startMs={timelineState.startMs}
           endMs={timelineState.endMs}
           widthPx={timelineState.widthPx}
-          isPlacementArmed={isPlacementArmed}
+          surfaceHeight={TIMELINE_SURFACE_HEIGHT_PX}
           onSelect={(id) => onSelectMemory?.(id)}
-          onCreateAt={(timeMs, verticalRatio) => onPlaceMemoryAt?.(timeMs, verticalRatio)}
           onUpdateMemory={(memoryId, payload) => onUpdateMemory?.(memoryId, payload)}
+          resizeMode={resizeMode}
         />
 
         {ticks

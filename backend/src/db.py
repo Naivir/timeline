@@ -10,6 +10,7 @@ from sqlmodel import Session, SQLModel, create_engine
 # Import models so SQLModel metadata includes required tables.
 from src.models.memory import Memory, TimelineSession  # noqa: F401
 from src.models.memory_deletion import MemoryDeletionRecord  # noqa: F401
+from src.models.theme import Theme  # noqa: F401
 
 db_path_env = os.getenv('TIMELINE_DB_PATH')
 if db_path_env:

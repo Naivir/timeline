@@ -51,6 +51,8 @@ Syntax-check Bash scripts before opening a PR.
 - In-memory UI state only (no persistence) (002-timeline-navigation-system)
 - Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, SQLModel/SQLAlchemy, Uvicorn, React 18, Vite, Playwrigh (003-add-timeline-memories)
 - Backend relational database (SQLite for local development; schema designed for DB portability) (003-add-timeline-memories)
+- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic/SQLModel/SQLAlchemy, Uvicorn, React 18, Vite, Radix UI, Vitest, Playwrigh (004-timeline-themes-sidebar)
+- Backend relational DB (SQLite for local dev, portable schema) (004-timeline-themes-sidebar)
 
 ## Recent Changes
 - 001-setup-timeline-stack: Added Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, shadcn/ui

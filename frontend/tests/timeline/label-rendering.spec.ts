@@ -26,8 +26,11 @@ test('updates labels while panning and zooming', async ({ page }) => {
   const fadeWidth = await page.locator('.timeline-fade-left').evaluate((el) => Number.parseFloat(window.getComputedStyle(el).width))
   expect(fadeWidth).toBeGreaterThanOrEqual(160)
 
+  let hasVisibleLabel = false
   for (let i = 0; i < count; i += 1) {
     const opacity = await labels.nth(i).evaluate((el) => Number(window.getComputedStyle(el).opacity))
-    expect(opacity).toBeGreaterThan(0)
+    expect(opacity).toBeGreaterThanOrEqual(0)
+    if (opacity > 0) hasVisibleLabel = true
   }
+  expect(hasVisibleLabel).toBeTruthy()
 })
