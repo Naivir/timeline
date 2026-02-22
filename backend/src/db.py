@@ -42,9 +42,24 @@ def _ensure_memory_columns() -> None:
         )
 
 
+def _ensure_theme_columns() -> None:
+    with engine.begin() as connection:
+        columns = connection.execute(text("PRAGMA table_info('theme')")).fetchall()
+        if not columns:
+            return
+        names = {str(row[1]) for row in columns}
+        if 'top_px' not in names:
+            connection.execute(text("ALTER TABLE theme ADD COLUMN top_px FLOAT NOT NULL DEFAULT 120"))
+        if 'bottom_px' not in names:
+            connection.execute(text("ALTER TABLE theme ADD COLUMN bottom_px FLOAT NOT NULL DEFAULT 216"))
+        if 'abbreviated_title' not in names:
+            connection.execute(text("ALTER TABLE theme ADD COLUMN abbreviated_title TEXT"))
+
+
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
     _ensure_memory_columns()
+    _ensure_theme_columns()
 
 
 def get_session() -> Generator[Session, None, None]:

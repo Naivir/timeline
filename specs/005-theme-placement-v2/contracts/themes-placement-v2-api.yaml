@@ -1,0 +1,256 @@
+openapi: 3.1.0
+info:
+  title: Timeline Themes Placement V2 API
+  version: 0.2.0
+  description: >
+    Contract for persisted theme blocks with deterministic create/resize geometry.
+    Theme blocks support floating vertical placement via top/bottom coordinates and
+    4px snapped visual outcomes.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /api/v1/sessions/{sessionId}/themes:
+    get:
+      summary: List themes for a session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Theme list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeListResponse'
+    post:
+      summary: Create a floating theme block
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeCreateRequest'
+      responses:
+        '201':
+          description: Created theme
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Theme'
+        '422':
+          description: Validation failure
+
+  /api/v1/sessions/{sessionId}/themes/{themeId}:
+    patch:
+      summary: Update theme metadata or geometry
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/ThemeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeUpdateRequest'
+      responses:
+        '200':
+          description: Updated theme
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Theme'
+        '404':
+          description: Theme not found
+        '422':
+          description: Validation failure
+    delete:
+      summary: Delete theme
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/ThemeId'
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Theme not found
+
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+    ThemeId:
+      name: themeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ThemeListResponse:
+      type: object
+      required: [sessionId, themes]
+      properties:
+        sessionId:
+          type: string
+        themes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Theme'
+
+    Theme:
+      type: object
+      required:
+        - id
+        - sessionId
+        - startTime
+        - endTime
+        - title
+        - tags
+        - color
+        - opacity
+        - priority
+        - topPx
+        - bottomPx
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        abbreviatedTitle:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        tags:
+          type: array
+          items:
+            type: string
+        color:
+          type: string
+        opacity:
+          type: number
+          minimum: 0.05
+          maximum: 1.0
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        topPx:
+          type: number
+          description: Top edge in timeline surface pixel space; visual output snaps to 4px grid.
+        bottomPx:
+          type: number
+          description: Bottom edge in timeline surface pixel space; visual output snaps to 4px grid.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ThemeCreateRequest:
+      type: object
+      required: [startTime, endTime, title, color, opacity, priority, topPx, bottomPx]
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        abbreviatedTitle:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        tags:
+          type: array
+          items:
+            type: string
+        color:
+          type: string
+        opacity:
+          type: number
+          minimum: 0.05
+          maximum: 1.0
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        topPx:
+          type: number
+        bottomPx:
+          type: number
+
+    ThemeUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        abbreviatedTitle:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+          maxLength: 4000
+        tags:
+          type: array
+          items:
+            type: string
+        color:
+          type: string
+        opacity:
+          type: number
+          minimum: 0.05
+          maximum: 1.0
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        topPx:
+          type: number
+        bottomPx:
+          type: number

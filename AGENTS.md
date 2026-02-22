@@ -53,6 +53,8 @@ Syntax-check Bash scripts before opening a PR.
 - Backend relational database (SQLite for local development; schema designed for DB portability) (003-add-timeline-memories)
 - Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic/SQLModel/SQLAlchemy, Uvicorn, React 18, Vite, Radix UI, Vitest, Playwrigh (004-timeline-themes-sidebar)
 - Backend relational DB (SQLite for local dev, portable schema) (004-timeline-themes-sidebar)
+- Python 3.13 (backend), TypeScript 5.x + React 18 (frontend) + FastAPI, Pydantic/SQLModel/SQLAlchemy, Uvicorn, Vite, Vitest, Playwrigh (005-theme-placement-v2)
+- Backend relational database (SQLite in local/dev; existing migration path) (005-theme-placement-v2)
 
 ## Recent Changes
 - 001-setup-timeline-stack: Added Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, shadcn/ui

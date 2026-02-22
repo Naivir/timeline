@@ -25,24 +25,24 @@ export function ThemeDetailsPanel({
 }: ThemeDetailsPanelProps) {
   const [isEditing, setIsEditing] = useState(startInEditMode)
   const [title, setTitle] = useState('')
+  const [abbreviatedTitle, setAbbreviatedTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tagsText, setTagsText] = useState('')
   const [color, setColor] = useState('#3b82f6')
   const [opacity, setOpacity] = useState('0.3')
   const [priority, setPriority] = useState('100')
-  const [heightPx, setHeightPx] = useState('96')
   const [confirmAction, setConfirmAction] = useState<'delete' | 'discard-new' | null>(null)
   const [isPending, setIsPending] = useState(false)
 
   useEffect(() => {
     if (!theme) return
     setTitle(theme.title)
+    setAbbreviatedTitle(theme.abbreviatedTitle ?? '')
     setDescription(theme.description ?? '')
     setTagsText((theme.tags ?? []).join(', '))
     setColor(theme.color)
     setOpacity(String(theme.opacity))
     setPriority(String(theme.priority))
-    setHeightPx(String(theme.heightPx))
     setIsEditing(startInEditMode)
   }, [theme, startInEditMode])
 
@@ -64,12 +64,12 @@ export function ThemeDetailsPanel({
     try {
       await onSave(theme.id, {
         title: title.trim(),
+        abbreviatedTitle: abbreviatedTitle.trim() || undefined,
         description: description.trim() || undefined,
         tags,
         color,
         opacity: Number(opacity),
         priority: Number(priority),
-        heightPx: Number(heightPx),
       })
       setIsEditing(false)
     } finally {
@@ -94,6 +94,14 @@ export function ThemeDetailsPanel({
                 <input aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} required />
               </label>
               <label className="memory-field">
+                <span>Abbreviated Title</span>
+                <input
+                  aria-label="Abbreviated Title"
+                  value={abbreviatedTitle}
+                  onChange={(event) => setAbbreviatedTitle(event.target.value)}
+                />
+              </label>
+              <label className="memory-field">
                 <span>Description</span>
                 <textarea aria-label="Description" rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
               </label>
@@ -113,10 +121,6 @@ export function ThemeDetailsPanel({
                 <label className="memory-field">
                   <span>Priority</span>
                   <input aria-label="Priority" type="number" min={0} max={1000} step={1} value={priority} onChange={(event) => setPriority(event.target.value)} />
-                </label>
-                <label className="memory-field">
-                  <span>Height</span>
-                  <input aria-label="Height" type="number" min={24} max={600} step={1} value={heightPx} onChange={(event) => setHeightPx(event.target.value)} />
                 </label>
               </div>
               <div className="memory-form-actions">
@@ -144,6 +148,10 @@ export function ThemeDetailsPanel({
                 <div>
                   <dt>Title</dt>
                   <dd>{theme.title}</dd>
+                </div>
+                <div>
+                  <dt>Abbreviated Title</dt>
+                  <dd>{theme.abbreviatedTitle ?? 'None'}</dd>
                 </div>
                 <div>
                   <dt>Description</dt>

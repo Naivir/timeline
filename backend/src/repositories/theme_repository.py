@@ -34,17 +34,27 @@ class ThemeRepository:
 
     def create_theme(self, session_id: str, payload: ThemeCreateRequest) -> Theme:
         self.ensure_session(session_id)
+        if payload.topPx is not None and payload.bottomPx is not None:
+            top_px = payload.topPx
+            bottom_px = payload.bottomPx
+        else:
+            height_px = payload.heightPx if payload.heightPx is not None else 96
+            top_px = 120
+            bottom_px = top_px + height_px
         theme = Theme(
             session_id=session_id,
             start_time=payload.startTime,
             end_time=payload.endTime,
             title=payload.title,
+            abbreviated_title=payload.abbreviatedTitle,
             description=payload.description,
             tags_json=json.dumps(payload.tags),
             color=payload.color,
             opacity=payload.opacity,
             priority=payload.priority,
-            height_px=payload.heightPx,
+            height_px=bottom_px - top_px,
+            top_px=top_px,
+            bottom_px=bottom_px,
         )
         theme.ensure_valid()
         self.session.add(theme)
@@ -62,6 +72,8 @@ class ThemeRepository:
             theme.end_time = payload.endTime
         if payload.title is not None:
             theme.title = payload.title
+        if 'abbreviatedTitle' in payload.model_fields_set:
+            theme.abbreviated_title = payload.abbreviatedTitle
         if payload.description is not None:
             theme.description = payload.description
         if payload.tags is not None:
@@ -72,8 +84,13 @@ class ThemeRepository:
             theme.opacity = payload.opacity
         if payload.priority is not None:
             theme.priority = payload.priority
+        if payload.topPx is not None:
+            theme.top_px = payload.topPx
+        if payload.bottomPx is not None:
+            theme.bottom_px = payload.bottomPx
         if payload.heightPx is not None:
-            theme.height_px = payload.heightPx
+            theme.bottom_px = theme.top_px + payload.heightPx
+        theme.height_px = theme.bottom_px - theme.top_px
         theme.updated_at = datetime.now(UTC)
         theme.ensure_valid()
         self.session.add(theme)
@@ -88,4 +105,3 @@ class ThemeRepository:
         self.session.delete(theme)
         self.session.commit()
         return True
-

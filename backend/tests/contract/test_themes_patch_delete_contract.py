@@ -8,14 +8,24 @@ def test_patch_theme_contract(client, sample_theme_payload) -> None:
 
     patched = client.patch(
         f'/api/v1/sessions/test-session/themes/{theme_id}',
-        json={'title': 'Renamed theme', 'priority': 990, 'opacity': 0.6},
+        json={
+            'title': 'Renamed theme',
+            'abbreviatedTitle': 'Renamed',
+            'priority': 990,
+            'opacity': 0.6,
+            'topPx': 124,
+            'bottomPx': 220,
+        },
     )
     assert patched.status_code == 200
     body = patched.json()
     assert body['id'] == theme_id
     assert body['title'] == 'Renamed theme'
+    assert body['abbreviatedTitle'] == 'Renamed'
     assert body['priority'] == 990
     assert body['opacity'] == 0.6
+    assert body['topPx'] == 124
+    assert body['bottomPx'] == 220
 
 
 def test_delete_theme_contract(client, sample_theme_payload) -> None:

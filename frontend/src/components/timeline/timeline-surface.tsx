@@ -27,7 +27,7 @@ type TimelineSurfaceProps = {
   onSelectMemory?: (memoryId: string | null) => void
   onSelectTheme?: (themeId: string | null) => void
   onPlaceMemoryAt?: (timeMs: number, verticalRatio: number) => void
-  onCreateThemeRange?: (startMs: number, endMs: number) => void
+  onCreateThemeRange?: (startMs: number, endMs: number, topPx: number, bottomPx: number) => void
   onUpdateMemory?: (memoryId: string, payload: MemoryUpdateRequest) => void
   onUpdateTheme?: (themeId: string, payload: ThemeUpdateRequest) => void
   mode?: 'none' | 'memory' | 'theme'
@@ -193,7 +193,7 @@ export function TimelineSurface({
           isInteractive={!isMemoryPlacementArmed && (isThemePlacementArmed || themes.length > 0)}
           isPlacementArmed={isThemePlacementArmed}
           resizeMode={resizeMode}
-          onCreateTheme={(s, e) => onCreateThemeRange?.(s, e)}
+          onCreateTheme={(s, e, topPx, bottomPx) => onCreateThemeRange?.(s, e, topPx, bottomPx)}
           onSelectTheme={(themeId) => onSelectTheme?.(themeId)}
           onUpdateTheme={(themeId, payload) => onUpdateTheme?.(themeId, payload)}
         />

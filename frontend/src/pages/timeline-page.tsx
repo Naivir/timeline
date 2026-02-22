@@ -108,7 +108,7 @@ export default function TimelinePage() {
     setSidebarOpen(false)
   }
 
-  const createThemeRange = async (startMs: number, endMs: number) => {
+  const createThemeRange = async (startMs: number, endMs: number, topPx: number, bottomPx: number) => {
     const created = await createTheme({
       startTime: new Date(startMs).toISOString(),
       endTime: new Date(endMs).toISOString(),
@@ -118,7 +118,8 @@ export default function TimelinePage() {
       color: '#3b82f6',
       opacity: 0.3,
       priority: 100,
-      heightPx: 96,
+      topPx,
+      bottomPx,
     })
     setThemes((current) => [...current, created])
     setSelectedThemeId(created.id)
@@ -272,8 +273,8 @@ export default function TimelinePage() {
           onPlaceMemoryAt={(timeMs, verticalRatio) => {
             void createAtTime(timeMs, verticalRatio)
           }}
-          onCreateThemeRange={(startMs, endMs) => {
-            void createThemeRange(startMs, endMs)
+          onCreateThemeRange={(startMs, endMs, topPx, bottomPx) => {
+            void createThemeRange(startMs, endMs, topPx, bottomPx)
           }}
           onUpdateMemory={(memoryId, payload) => {
             void saveMemory(memoryId, payload)
