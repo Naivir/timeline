@@ -31,7 +31,24 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Spec-first compliance: `spec.md` defines prioritized user stories, measurable
+      outcomes, and explicit constraints.
+- [ ] Independent value slices: plan preserves independently testable story slices
+      (no cross-story coupling that blocks MVP delivery).
+- [ ] Verification scope: validation commands for changed scripts/templates are
+      identified (minimum Bash syntax checks and realistic command invocations).
+- [ ] Dependency execution: required runtime/test dependencies are identified and
+      planned to be installed during task execution (not deferred to user).
+- [ ] Test-first workflow: tests are planned to fail before implementation and
+      pass before tasks/stories are marked complete.
+- [ ] Template/script compatibility: impacted files in `.specify/templates/` and
+      `.specify/scripts/bash/` are listed and synced, or deferral is documented.
+- [ ] Full-stack integrity: frontend/backend features include explicit cross-layer
+      contract and integration validation gates.
+- [ ] Browser verification: frontend features that depend on backend data include
+      at least one automated browser test against a live backend connection.
+- [ ] Governance traceability: constitution impact (if any) is recorded with
+      required versioning and propagation notes.
 
 ## Project Structure
 

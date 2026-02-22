@@ -1,50 +1,104 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: 1.1.0 -> 1.1.1
+- Modified principles:
+  - III. Test-First Verification -> III. Test-First Verification (clarified frontend browser validation)
+  - IV. Full-Stack Contract Integrity -> IV. Full-Stack Contract Integrity (clarified live browser/API verification)
+- Added sections:
+  - None
+- Removed sections:
+  - None
+- Templates requiring updates:
+  - ✅ updated: .specify/templates/plan-template.md
+  - ✅ updated: .specify/templates/tasks-template.md
+  - ✅ no change required: .specify/templates/spec-template.md
+  - ⚠ pending: .specify/templates/commands/*.md (directory not present)
+- Follow-up TODOs:
+  - None
+-->
+
+# Timeline Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-First Planning
+Every implementation change MUST start from an approved feature spec in
+`specs/<###-feature-name>/spec.md` and a plan in
+`specs/<###-feature-name>/plan.md`. Work MUST not begin from ad hoc tasks
+without documented user scenarios, measurable outcomes, and constraints.
+Rationale: this repository is process-centric, so predictable delivery depends on
+explicit planning artifacts.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Independently Valuable Slices
+Specifications and tasks MUST organize work into independently testable user
+stories ordered by priority (P1, P2, ...). Each story MUST deliver user-visible
+value on its own and include an independent test definition before implementation
+tasks are accepted. Rationale: independent slices preserve MVP delivery and reduce
+cross-story coupling.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First Verification
+Implementation tasks MUST be executed with tests written first for the affected
+behavior. Tests MUST fail before code changes, and tasks MUST NOT be marked
+complete until required tests pass. Dependency installation needed to run those
+tests is part of implementation work and MUST be executed by the agent during the
+task workflow, not deferred to the user. For frontend work, required tests MUST
+include automated browser verification where user-visible behavior depends on
+networked backend data. Rationale: reliable delivery requires provable behavior
+change and executable environments.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Full-Stack Contract Integrity
+For web features with frontend and backend components, both layers MUST be treated
+as first-class deliverables in planning and execution. API contracts, data models,
+and UI integration behavior MUST remain aligned so frontend behavior is validated
+against backend responses, including at least one live browser-to-backend
+verification path. Rationale: split-stack delivery fails when either side is
+treated as optional or implied.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Traceable Governance
+Constitution amendments MUST include a semantic version bump, a dated change
+record, and explicit propagation notes for affected templates and guidance docs.
+Pull requests MUST state how constitution gates were satisfied or why an exception
+was approved. Rationale: governance is effective only when changes are auditable.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Delivery Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Repository conventions in `AGENTS.md` are mandatory for file naming, script
+  style, and validation commands.
+- Generated specs and plans MUST use `###-short-description` feature directory
+  naming.
+- When a feature defines both frontend and backend scope, plans and tasks MUST
+  include concrete work items for both directories and their integration path.
+- Guidance and templates MUST prefer deterministic, machine-reviewable language
+  (`MUST`, `SHOULD`, explicit paths, explicit commands).
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Workflow and Quality Gates
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+1. Run prerequisite checks before planning and task generation.
+2. Confirm Constitution Check gates pass in `plan.md` before Phase 0 research.
+3. Ensure `spec.md`, `plan.md`, and `tasks.md` remain mutually consistent for each
+   feature branch.
+4. Install required dependencies before running validation commands.
+5. Execute tests first (red), then implement (green), and record outcomes.
+6. Record verification commands and outcomes in PR descriptions for changed
+   scripts/templates.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+This constitution supersedes conflicting workflow guidance in repository docs.
+Amendments require: (a) documented proposal, (b) approval in code review, and
+(c) propagation updates to impacted templates and operational guidance.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Versioning policy:
+- MAJOR: incompatible governance changes or removal/redefinition of a core
+  principle.
+- MINOR: new principle or materially expanded mandatory guidance.
+- PATCH: clarifications, wording improvements, or non-semantic refinements.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Compliance review expectations:
+- Every feature plan MUST include an explicit Constitution Check.
+- Every implementation task list MUST include explicit dependency setup and
+  test-first checkpoints.
+- Frontend/backend features MUST include cross-layer contract verification tasks.
+- Reviewers MUST block merges that do not satisfy mandatory gates or documented
+  approved exceptions.
+
+**Version**: 1.1.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-22

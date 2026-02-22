@@ -95,6 +95,17 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+## Constitution Alignment *(mandatory)*
+
+- **CA-001 Spec-First**: Link the planning artifacts this spec must produce
+  (`plan.md`, `tasks.md`) and list unresolved clarifications blocking planning.
+- **CA-002 Independent Slices**: Confirm each user story is independently
+  implementable, testable, and valuable.
+- **CA-003 Verification Scope**: Identify verification expectations for workflow
+  or automation changes introduced by this feature.
+- **CA-004 Compatibility Impact**: List template/script files that must stay
+  synchronized if requirements change.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
