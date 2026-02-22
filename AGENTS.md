@@ -44,6 +44,8 @@ Syntax-check Bash scripts before opening a PR.
 - Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, shadcn/ui (001-setup-timeline-stack)
 - In-memory timeline payload for this phase (persistent storage deferred) (001-setup-timeline-stack)
 - Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, uv, React, Vite, Tailwind CSS, shadcn/ui (001-setup-timeline-stack)
+- TypeScript 5.x + React 18, Vite 5, Tailwind CSS, Playwrigh (002-timeline-navigation-system)
+- In-memory UI state only (no persistence) (002-timeline-navigation-system)
 
 ## Recent Changes
 - 001-setup-timeline-stack: Added Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, shadcn/ui
