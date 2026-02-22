@@ -1,8 +1,8 @@
 <!--
 Sync Impact Report
-- Version change: 1.1.0 -> 1.1.1
+- Version change: 1.1.1 -> 1.2.0
 - Modified principles:
-  - III. Test-First Verification -> III. Test-First Verification (clarified frontend browser validation)
+  - III. Test-First Verification -> III. Test-First Verification (adds mandatory screenshot sanity checks for UI work)
   - IV. Full-Stack Contract Integrity -> IV. Full-Stack Contract Integrity (clarified live browser/API verification)
 - Added sections:
   - None
@@ -43,8 +43,10 @@ complete until required tests pass. Dependency installation needed to run those
 tests is part of implementation work and MUST be executed by the agent during the
 task workflow, not deferred to the user. For frontend work, required tests MUST
 include automated browser verification where user-visible behavior depends on
-networked backend data. Rationale: reliable delivery requires provable behavior
-change and executable environments.
+networked backend data. For every UI change, verification MUST include captured
+screenshots for each changed screen or popup plus a manual visual sanity review.
+Rationale: reliable delivery requires provable behavior change, executable
+environments, and visual regression checks.
 
 ### IV. Full-Stack Contract Integrity
 For web features with frontend and backend components, both layers MUST be treated
@@ -79,7 +81,8 @@ was approved. Rationale: governance is effective only when changes are auditable
    feature branch.
 4. Install required dependencies before running validation commands.
 5. Execute tests first (red), then implement (green), and record outcomes.
-6. Record verification commands and outcomes in PR descriptions for changed
+6. For UI changes, capture and review screenshots for each changed screen/popup.
+7. Record verification commands and outcomes in PR descriptions for changed
    scripts/templates.
 
 ## Governance
@@ -101,4 +104,4 @@ Compliance review expectations:
 - Reviewers MUST block merges that do not satisfy mandatory gates or documented
   approved exceptions.
 
-**Version**: 1.1.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-22
+**Version**: 1.2.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-22

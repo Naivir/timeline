@@ -31,6 +31,9 @@ Syntax-check Bash scripts before opening a PR.
   - Run `bash -n .specify/scripts/bash/*.sh`.
   - Run affected scripts with `--help` and one realistic invocation.
   - For workflow changes, verify files are created in the expected `specs/<feature>/` path.
+- For frontend/UI changes, run browser tests and capture screenshots for each changed screen/popup, then manually review them for layout/interaction sanity.
+- Tests must assert user-critical outcomes (for example, click opens details, create opens edit mode, no overlap regressions), not only mocked happy-path responses.
+- Mandatory iterative UI verification loop: capture screenshots -> manually inspect and list defects -> add/adjust failing tests for those defects -> implement fixes -> rerun tests -> capture/inspect screenshots again. Repeat until both tests and visuals pass.
 
 ## Commit & Pull Request Guidelines
 - Keep commit messages short, imperative, and scoped (example: `Add JSON output to prerequisites check`).
@@ -46,6 +49,8 @@ Syntax-check Bash scripts before opening a PR.
 - Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, uv, React, Vite, Tailwind CSS, shadcn/ui (001-setup-timeline-stack)
 - TypeScript 5.x + React 18, Vite 5, Tailwind CSS, Playwrigh (002-timeline-navigation-system)
 - In-memory UI state only (no persistence) (002-timeline-navigation-system)
+- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, SQLModel/SQLAlchemy, Uvicorn, React 18, Vite, Playwrigh (003-add-timeline-memories)
+- Backend relational database (SQLite for local development; schema designed for DB portability) (003-add-timeline-memories)
 
 ## Recent Changes
 - 001-setup-timeline-stack: Added Python 3.12 (backend), TypeScript 5.x + Node.js 22 LTS (frontend) + FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, shadcn/ui

@@ -1,81 +1,145 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import TimelinePage from '../src/pages/timeline-page'
-
-function mockFetchOnce(payload: unknown, status = 200) {
-  vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => payload
-  } as Response)
-}
 
 describe('TimelinePage', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('renders loading then ready state', async () => {
-    mockFetchOnce({
-      timeline: {
-        id: 'timeline-main',
-        title: 'My Timeline',
-        startLabel: 'Past',
-        endLabel: 'Future',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      baseline: {
-        orientation: 'horizontal',
-        positionPercent: 50,
-        thicknessPx: 4,
-        lengthPercent: 92
-      },
-      eventPlaceholders: [],
-      meta: { requestId: 'test-id' }
-    })
+  it('renders timeline surface and loads memory markers', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        sessionId: 'default-session',
+        memories: [
+          {
+            id: 'memory-1',
+            sessionId: 'default-session',
+            anchor: { type: 'point', timestamp: '2026-02-20T10:15:00Z' },
+              title: 'First memory',
+              description: null,
+              tags: ['note'],
+              verticalRatio: 0.3,
+              createdAt: '2026-02-20T10:15:00Z',
+              updatedAt: '2026-02-20T10:15:00Z'
+          }
+        ]
+      })
+    } as Response)
 
     render(<TimelinePage />)
 
-    expect(screen.getByText(/Loading timeline/i)).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByLabelText(/Base timeline line/i)).toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: /Timeline Navigator/i })).toBeInTheDocument()
+    expect(screen.getByTestId('new-memory-button')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText(/Timeline axis/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByLabelText(/Memory: First memory/i)).toBeInTheDocument())
   })
 
-  it('renders error and supports retry', async () => {
+  it('keeps timeline usable when memory list request fails', async () => {
     vi.spyOn(global, 'fetch')
       .mockResolvedValueOnce({
         ok: false,
-        status: 503,
-        json: async () => ({ code: 'SERVICE_UNAVAILABLE', message: 'Service down' })
+        status: 500,
+        json: async () => ({ message: 'unavailable' })
+      } as Response)
+
+    render(<TimelinePage />)
+
+    await waitFor(() => expect(screen.getByLabelText(/Timeline axis/i)).toBeInTheDocument())
+    expect(screen.queryAllByTestId('memory-marker')).toHaveLength(0)
+    expect(screen.getByTestId('new-memory-button')).toBeInTheDocument()
+  })
+
+  it('arms placement from header and creates memory on timeline click', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ sessionId: 'default-session', memories: [] })
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
-          timeline: {
-            id: 'timeline-main',
-            title: 'My Timeline',
-            startLabel: 'Past',
-            endLabel: 'Future',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          baseline: {
-            orientation: 'horizontal',
-            positionPercent: 50,
-            thicknessPx: 4,
-            lengthPercent: 92
-          },
-          eventPlaceholders: [],
-          meta: { requestId: 'retry-id' }
+          id: 'memory-2',
+          sessionId: 'default-session',
+          anchor: { type: 'point', timestamp: '2026-02-21T10:15:00Z' },
+          title: 'New Memory',
+          description: null,
+          tags: ['note'],
+          verticalRatio: 0.45,
+          createdAt: '2026-02-21T10:15:00Z',
+          updatedAt: '2026-02-21T10:15:00Z'
         })
       } as Response)
 
     render(<TimelinePage />)
+    await waitFor(() => expect(screen.getByLabelText(/Timeline axis/i)).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('new-memory-button'))
 
-    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    await userEvent.click(screen.getByRole('button', { name: /Retry Timeline Load/i }))
-    await waitFor(() => expect(screen.getByLabelText(/Base timeline line/i)).toBeInTheDocument())
+    expect(screen.getByText(/Click timeline to place memory/i)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    await userEvent.click(screen.getByTestId('memory-layer'))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByLabelText(/Memory: New Memory/i)).toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: /Edit Memory/i })).toBeInTheDocument()
+  })
+
+  it('opens edit mode and updates title/description', async () => {
+    vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          sessionId: 'default-session',
+          memories: [
+            {
+              id: 'memory-5',
+              sessionId: 'default-session',
+              anchor: { type: 'point', timestamp: '2026-02-20T10:15:00Z' },
+              title: 'Original',
+              description: 'Original desc',
+              tags: ['note'],
+              verticalRatio: 0.35,
+              createdAt: '2026-02-20T10:15:00Z',
+              updatedAt: '2026-02-20T10:15:00Z'
+            }
+          ]
+        })
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'memory-5',
+          sessionId: 'default-session',
+          anchor: { type: 'point', timestamp: '2026-02-20T10:15:00Z' },
+          title: 'Updated title',
+          description: 'Updated desc',
+          tags: ['note'],
+          verticalRatio: 0.35,
+          createdAt: '2026-02-20T10:15:00Z',
+          updatedAt: '2026-02-20T10:16:00Z'
+        })
+      } as Response)
+
+    render(<TimelinePage />)
+    await waitFor(() => expect(screen.getByLabelText(/Memory: Original/i)).toBeInTheDocument())
+    await userEvent.click(screen.getByLabelText(/Memory: Original/i))
+    await userEvent.click(screen.getByRole('button', { name: /Edit/i }))
+    const panel = screen.getByTestId('memory-details-panel')
+    await userEvent.clear(within(panel).getByRole('textbox', { name: 'Title', exact: true }))
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Title', exact: true }), 'Updated title')
+    await userEvent.clear(within(panel).getByRole('textbox', { name: 'Description', exact: true }))
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Description', exact: true }), 'Updated desc')
+    await userEvent.click(screen.getByRole('button', { name: /Save/i }))
+
+    await waitFor(() => expect(screen.getByText('Updated title')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Updated desc')).toBeInTheDocument())
   })
 })

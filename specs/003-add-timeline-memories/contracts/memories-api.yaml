@@ -1,0 +1,193 @@
+openapi: 3.1.0
+info:
+  title: Timeline Memories API
+  version: 0.1.0
+  description: Contract for session memory persistence and interaction workflows.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /api/v1/sessions/{sessionId}/memories:
+    get:
+      summary: List memories for a timeline session
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Memory list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Memory'
+    post:
+      summary: Create memory
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemoryRequest'
+      responses:
+        '201':
+          description: Memory created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Memory'
+        '400':
+          description: Validation error
+  /api/v1/sessions/{sessionId}/memories/{memoryId}:
+    patch:
+      summary: Update memory metadata or temporal anchor
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/MemoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemoryRequest'
+      responses:
+        '200':
+          description: Memory updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Memory'
+        '404':
+          description: Memory not found
+    delete:
+      summary: Delete memory with undo token
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/MemoryId'
+      responses:
+        '200':
+          description: Memory deleted and undo available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletionId:
+                    type: string
+                  undoExpiresAt:
+                    type: string
+                    format: date-time
+        '404':
+          description: Memory not found
+  /api/v1/sessions/{sessionId}/memories/deletions/{deletionId}/undo:
+    post:
+      summary: Undo memory deletion
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: deletionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Memory'
+        '410':
+          description: Undo window expired
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+    MemoryId:
+      name: memoryId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    TemporalAnchor:
+      oneOf:
+        - type: object
+          properties:
+            type:
+              const: point
+            timestamp:
+              type: string
+              format: date-time
+          required: [type, timestamp]
+        - type: object
+          properties:
+            type:
+              const: range
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+          required: [type, start, end]
+    Memory:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        anchor:
+          $ref: '#/components/schemas/TemporalAnchor'
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, sessionId, anchor, title, createdAt, updatedAt]
+    CreateMemoryRequest:
+      type: object
+      properties:
+        anchor:
+          $ref: '#/components/schemas/TemporalAnchor'
+        title:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required: [anchor, title]
+    UpdateMemoryRequest:
+      type: object
+      properties:
+        anchor:
+          $ref: '#/components/schemas/TemporalAnchor'
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string

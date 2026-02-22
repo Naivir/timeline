@@ -15,6 +15,7 @@ __pycache__/
 venv/
 .uv-cache/
 *.egg-info/
+*.db
 
 # Test / coverage
 coverage/
