@@ -3,6 +3,16 @@ import type { ThemeCreateRequest, ThemeItem, ThemeListResponse, ThemeUpdateReque
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
 
+function normalizeThemeUpdatePayload(payload: ThemeUpdateRequest): ThemeUpdateRequest {
+  if (payload.topPx !== undefined && payload.bottomPx !== undefined) {
+    return {
+      ...payload,
+      heightPx: payload.bottomPx - payload.topPx,
+    }
+  }
+  return payload
+}
+
 export async function listThemes(sessionId = DEFAULT_SESSION_ID): Promise<ThemeItem[]> {
   const response = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/themes`, {
     method: 'GET',
@@ -24,10 +34,11 @@ export async function createTheme(payload: ThemeCreateRequest, sessionId = DEFAU
 }
 
 export async function updateTheme(themeId: string, payload: ThemeUpdateRequest, sessionId = DEFAULT_SESSION_ID): Promise<ThemeItem> {
+  const normalizedPayload = normalizeThemeUpdatePayload(payload)
   const response = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/themes/${themeId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
   })
   if (!response.ok) throw new Error('Failed to update theme')
   return (await response.json()) as ThemeItem
@@ -40,4 +51,3 @@ export async function deleteTheme(themeId: string, sessionId = DEFAULT_SESSION_I
   })
   if (!response.ok) throw new Error('Failed to delete theme')
 }
-

@@ -40,5 +40,6 @@ def sample_theme_payload() -> dict[str, object]:
         'color': '#3b82f6',
         'opacity': 0.25,
         'priority': 100,
-        'heightPx': 72,
+        'topPx': 120,
+        'bottomPx': 192,
     }

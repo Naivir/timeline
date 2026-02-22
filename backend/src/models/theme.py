@@ -12,12 +12,16 @@ class Theme(SQLModel, table=True):
     start_time: datetime
     end_time: datetime
     title: str
+    abbreviated_title: str | None = None
     description: str | None = None
     tags_json: str = Field(default='[]', nullable=False)
     color: str = Field(default='#3b82f6')
     opacity: float = Field(default=0.25)
     priority: int = Field(default=100)
-    height_px: float = Field(default=64)
+    # Backward-compatible persisted height column retained for existing DBs.
+    height_px: float = Field(default=96)
+    top_px: float = Field(default=120)
+    bottom_px: float = Field(default=216)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), nullable=False)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), nullable=False)
 
@@ -28,6 +32,11 @@ class Theme(SQLModel, table=True):
             raise ValueError('priority must be in [0, 1000]')
         if self.opacity < 0.05 or self.opacity > 1:
             raise ValueError('opacity must be in [0.05, 1]')
-        if self.height_px < 24 or self.height_px > 600:
-            raise ValueError('height_px must be in [24, 600]')
-
+        if self.top_px < 0:
+            raise ValueError('top_px must be >= 0')
+        if self.bottom_px <= self.top_px:
+            raise ValueError('bottom_px must be > top_px')
+        derived_height = self.bottom_px - self.top_px
+        if derived_height < 24 or derived_height > 600:
+            raise ValueError('height must be in [24, 600]')
+        self.height_px = derived_height

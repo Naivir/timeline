@@ -1,6 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 
-import { clampThemeHeight, normalizeThemeRange } from '../../services/themes/theme-geometry'
+import {
+  applyThemeCornerResize,
+  applyThemeTranslation,
+  normalizeThemeRange,
+  normalizeThemeVerticalBounds,
+  snapTo4Px,
+} from '../../services/themes/theme-geometry'
 import { sortThemesForRender } from '../../services/themes/theme-layer-order'
 import type { ThemeItem, ThemeUpdateRequest } from '../../services/themes/theme-types'
 import { timeToX } from '../../services/timeline/time-scale-mapping'
@@ -16,19 +22,29 @@ type ThemeLayerProps = {
   isInteractive: boolean
   isPlacementArmed: boolean
   resizeMode?: boolean
-  onCreateTheme: (startMs: number, endMs: number) => void
+  onCreateTheme: (startMs: number, endMs: number, topPx: number, bottomPx: number) => void
   onSelectTheme: (themeId: string | null) => void
   onUpdateTheme: (themeId: string, payload: ThemeUpdateRequest) => void
 }
 
 type ThemeDragState = {
-  type: 'move' | 'start' | 'end' | 'height' | 'corner-start' | 'corner-end'
+  type:
+    | 'move'
+    | 'start'
+    | 'end'
+    | 'top'
+    | 'bottom'
+    | 'corner-top-start'
+    | 'corner-top-end'
+    | 'corner-bottom-start'
+    | 'corner-bottom-end'
   theme: ThemeItem
   startX: number
   startY: number
   initialStartMs: number
   initialEndMs: number
-  initialHeight: number
+  initialTopPx: number
+  initialBottomPx: number
 }
 
 export function ThemeLayer({
@@ -46,7 +62,7 @@ export function ThemeLayer({
   onUpdateTheme,
 }: ThemeLayerProps) {
   const axisY = surfaceHeight * 0.5
-  const [draftRange, setDraftRange] = useState<{ startX: number; endX: number } | null>(null)
+  const [draftRect, setDraftRect] = useState<{ startX: number; endX: number; topPx: number; bottomPx: number } | null>(null)
   const placementStartRef = useRef<{ x: number; y: number } | null>(null)
   const dragRef = useRef<ThemeDragState | null>(null)
 
@@ -59,8 +75,10 @@ export function ThemeLayer({
         const xEnd = timeToX(new Date(theme.endTime).getTime(), startMs, endMs, widthPx)
         const left = Math.min(xStart, xEnd)
         const width = Math.max(8, Math.abs(xEnd - xStart))
-        const height = clampThemeHeight(theme.heightPx)
-        const top = axisY - height
+        const fallbackHeight = theme.heightPx ?? 96
+        const top = snapTo4Px(theme.topPx ?? axisY - fallbackHeight)
+        const bottom = snapTo4Px(theme.bottomPx ?? axisY)
+        const height = Math.max(24, bottom - top)
         return {
           theme,
           left,
@@ -81,7 +99,8 @@ export function ThemeLayer({
       startY: clientY,
       initialStartMs: new Date(theme.startTime).getTime(),
       initialEndMs: new Date(theme.endTime).getTime(),
-      initialHeight: theme.heightPx,
+      initialTopPx: theme.topPx ?? axisY - (theme.heightPx ?? 96),
+      initialBottomPx: theme.bottomPx ?? axisY,
     }
 
     const onMove = (event: PointerEvent) => {
@@ -91,38 +110,118 @@ export function ThemeLayer({
       const deltaY = event.clientY - active.startY
       const deltaMs = (deltaX / Math.max(widthPx, 1)) * (endMs - startMs)
 
-      if (active.type === 'height') {
-        const nextHeight = clampThemeHeight(active.initialHeight - deltaY)
-        onUpdateTheme(active.theme.id, { heightPx: nextHeight })
+      if (active.type === 'top') {
+        const nextTop = Math.max(0, Math.min(active.initialBottomPx - 24, snapTo4Px(active.initialTopPx + deltaY)))
+        onUpdateTheme(active.theme.id, { topPx: nextTop, heightPx: active.initialBottomPx - nextTop })
         return
       }
 
-      if (active.type === 'corner-start') {
-        const normalized = normalizeThemeRange(active.initialStartMs + deltaMs, active.initialEndMs)
-        const nextHeight = clampThemeHeight(active.initialHeight - deltaY)
-        onUpdateTheme(active.theme.id, {
-          startTime: new Date(normalized.startMs).toISOString(),
-          endTime: new Date(normalized.endMs).toISOString(),
-          heightPx: nextHeight,
-        })
-        return
-      }
-
-      if (active.type === 'corner-end') {
-        const normalized = normalizeThemeRange(active.initialStartMs, active.initialEndMs + deltaMs)
-        const nextHeight = clampThemeHeight(active.initialHeight - deltaY)
-        onUpdateTheme(active.theme.id, {
-          startTime: new Date(normalized.startMs).toISOString(),
-          endTime: new Date(normalized.endMs).toISOString(),
-          heightPx: nextHeight,
-        })
+      if (active.type === 'bottom') {
+        const nextBottom = Math.max(active.initialTopPx + 24, Math.min(axisY, snapTo4Px(active.initialBottomPx + deltaY)))
+        onUpdateTheme(active.theme.id, { bottomPx: nextBottom, heightPx: nextBottom - active.initialTopPx })
         return
       }
 
       if (active.type === 'move') {
+        const translated = applyThemeTranslation({
+          initialStartMs: active.initialStartMs,
+          initialEndMs: active.initialEndMs,
+          initialTopPx: active.initialTopPx,
+          initialBottomPx: active.initialBottomPx,
+          deltaMs,
+          deltaYPx: deltaY,
+          axisY,
+        })
         onUpdateTheme(active.theme.id, {
-          startTime: new Date(active.initialStartMs + deltaMs).toISOString(),
-          endTime: new Date(active.initialEndMs + deltaMs).toISOString(),
+          startTime: new Date(translated.startMs).toISOString(),
+          endTime: new Date(translated.endMs).toISOString(),
+          topPx: translated.topPx,
+          bottomPx: translated.bottomPx,
+          heightPx: translated.bottomPx - translated.topPx,
+        })
+        return
+      }
+
+      if (active.type === 'corner-bottom-start') {
+        const resized = applyThemeCornerResize({
+          corner: 'bottom-left',
+          initialStartMs: active.initialStartMs,
+          initialEndMs: active.initialEndMs,
+          initialTopPx: active.initialTopPx,
+          initialBottomPx: active.initialBottomPx,
+          deltaMs,
+          deltaYPx: deltaY,
+          axisY,
+        })
+        onUpdateTheme(active.theme.id, {
+          startTime: new Date(resized.startMs).toISOString(),
+          endTime: new Date(resized.endMs).toISOString(),
+          topPx: resized.topPx,
+          bottomPx: resized.bottomPx,
+          heightPx: resized.bottomPx - resized.topPx,
+        })
+        return
+      }
+
+      if (active.type === 'corner-bottom-end') {
+        const resized = applyThemeCornerResize({
+          corner: 'bottom-right',
+          initialStartMs: active.initialStartMs,
+          initialEndMs: active.initialEndMs,
+          initialTopPx: active.initialTopPx,
+          initialBottomPx: active.initialBottomPx,
+          deltaMs,
+          deltaYPx: deltaY,
+          axisY,
+        })
+        onUpdateTheme(active.theme.id, {
+          startTime: new Date(resized.startMs).toISOString(),
+          endTime: new Date(resized.endMs).toISOString(),
+          topPx: resized.topPx,
+          bottomPx: resized.bottomPx,
+          heightPx: resized.bottomPx - resized.topPx,
+        })
+        return
+      }
+
+      if (active.type === 'corner-top-start') {
+        const resized = applyThemeCornerResize({
+          corner: 'top-left',
+          initialStartMs: active.initialStartMs,
+          initialEndMs: active.initialEndMs,
+          initialTopPx: active.initialTopPx,
+          initialBottomPx: active.initialBottomPx,
+          deltaMs,
+          deltaYPx: deltaY,
+          axisY,
+        })
+        onUpdateTheme(active.theme.id, {
+          startTime: new Date(resized.startMs).toISOString(),
+          endTime: new Date(resized.endMs).toISOString(),
+          topPx: resized.topPx,
+          bottomPx: resized.bottomPx,
+          heightPx: resized.bottomPx - resized.topPx,
+        })
+        return
+      }
+
+      if (active.type === 'corner-top-end') {
+        const resized = applyThemeCornerResize({
+          corner: 'top-right',
+          initialStartMs: active.initialStartMs,
+          initialEndMs: active.initialEndMs,
+          initialTopPx: active.initialTopPx,
+          initialBottomPx: active.initialBottomPx,
+          deltaMs,
+          deltaYPx: deltaY,
+          axisY,
+        })
+        onUpdateTheme(active.theme.id, {
+          startTime: new Date(resized.startMs).toISOString(),
+          endTime: new Date(resized.endMs).toISOString(),
+          topPx: resized.topPx,
+          bottomPx: resized.bottomPx,
+          heightPx: resized.bottomPx - resized.topPx,
         })
         return
       }
@@ -163,18 +262,24 @@ export function ThemeLayer({
         if (!isPlacementArmed || event.button !== 0) return
         const target = event.target as HTMLElement
         if (target.closest('[data-testid="theme-block"]')) return
+        if ('setPointerCapture' in event.currentTarget) {
+          event.currentTarget.setPointerCapture(event.pointerId)
+        }
         const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
         const y = event.clientY - rect.top
         if (y >= axisY) return
         const x = event.clientX - rect.left
         placementStartRef.current = { x, y }
-        setDraftRange({ startX: x, endX: x })
+        const { topPx, bottomPx } = normalizeThemeVerticalBounds(y, y, axisY)
+        setDraftRect({ startX: x, endX: x, topPx, bottomPx })
       }}
       onPointerMove={(event) => {
         if (!placementStartRef.current) return
         const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
         const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left))
-        setDraftRange({ startX: placementStartRef.current.x, endX: x })
+        const y = Math.max(0, Math.min(axisY, event.clientY - rect.top))
+        const { topPx, bottomPx } = normalizeThemeVerticalBounds(placementStartRef.current.y, y, axisY)
+        setDraftRect({ startX: placementStartRef.current.x, endX: x, topPx, bottomPx })
       }}
       onPointerUp={(event) => {
         if (placementStartRef.current && isPlacementArmed) {
@@ -184,7 +289,9 @@ export function ThemeLayer({
           const startTime = startMs + (Math.min(startX, endX) / Math.max(widthPx, 1)) * (endMs - startMs)
           const endTime = startMs + (Math.max(startX, endX) / Math.max(widthPx, 1)) * (endMs - startMs)
           const normalized = normalizeThemeRange(startTime, endTime)
-          onCreateTheme(normalized.startMs, normalized.endMs)
+          const y = Math.max(0, Math.min(axisY, event.clientY - rect.top))
+          const { topPx, bottomPx } = normalizeThemeVerticalBounds(placementStartRef.current.y, y, axisY)
+          onCreateTheme(normalized.startMs, normalized.endMs, topPx, bottomPx)
         } else if (!isPlacementArmed) {
           const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect()
           const x = event.clientX - rect.left
@@ -192,13 +299,23 @@ export function ThemeLayer({
           const inHitOrder = [...projected].reverse().filter((item) => x >= item.left && x <= item.left + item.width && y >= item.top && y <= item.top + item.height)
           onSelectTheme(inHitOrder[0]?.theme.id ?? null)
         }
+        if ('releasePointerCapture' in event.currentTarget) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
 
         placementStartRef.current = null
-        setDraftRange(null)
+        setDraftRect(null)
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(event) => {
+        if ('releasePointerCapture' in event.currentTarget) {
+          try {
+            event.currentTarget.releasePointerCapture(event.pointerId)
+          } catch {
+            // no-op
+          }
+        }
         placementStartRef.current = null
-        setDraftRange(null)
+        setDraftRect(null)
       }}
     >
       {projected.map((item) => (
@@ -211,21 +328,22 @@ export function ThemeLayer({
           height={item.height}
           zIndex={item.zIndex}
           selected={item.theme.id === selectedThemeId}
+          interactive={isInteractive}
           resizeMode={resizeMode}
           onSelect={onSelectTheme}
           onStartDrag={startResize}
         />
       ))}
 
-      {draftRange ? (
+      {draftRect ? (
         <div
           className="theme-draft"
           data-testid="theme-draft"
           style={{
-            left: `${Math.min(draftRange.startX, draftRange.endX)}px`,
-            width: `${Math.max(4, Math.abs(draftRange.endX - draftRange.startX))}px`,
-            top: `${axisY - 96}px`,
-            height: '96px',
+            left: `${Math.min(draftRect.startX, draftRect.endX)}px`,
+            width: `${Math.max(4, Math.abs(draftRect.endX - draftRect.startX))}px`,
+            top: `${draftRect.topPx}px`,
+            height: `${draftRect.bottomPx - draftRect.topPx}px`,
           }}
         />
       ) : null}

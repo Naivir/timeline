@@ -25,7 +25,10 @@ def create_theme(
     payload: ThemeCreateRequest,
     service: ThemeService = Depends(get_theme_service),
 ) -> ThemeResponse:
-    return service.create_theme(session_id, payload)
+    try:
+        return service.create_theme(session_id, payload)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.patch('/{theme_id}', response_model=ThemeResponse)
@@ -39,6 +42,8 @@ def update_theme(
         return service.update_theme(session_id, theme_id, payload)
     except ThemeNotFoundError as error:
         raise HTTPException(status_code=404, detail=f'Theme not found: {error}') from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.delete('/{theme_id}', status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
