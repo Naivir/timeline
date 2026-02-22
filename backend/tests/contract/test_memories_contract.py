@@ -44,8 +44,8 @@ def test_create_then_delete_can_discard_new_memory(client) -> None:
     created = create_response.json()
 
     delete_response = client.delete(f"/api/v1/sessions/test-session/memories/{created['id']}")
-    assert delete_response.status_code == 200
-    assert 'deletionId' in delete_response.json()
+    assert delete_response.status_code == 204
+    assert delete_response.text == ''
 
     list_response = client.get('/api/v1/sessions/test-session/memories')
     assert list_response.status_code == 200

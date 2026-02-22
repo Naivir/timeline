@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('deletes memory from details and restores via undo', async ({ page }) => {
-  let deletedSnapshot: any = null
+test('deletes memory from details with final confirmation', async ({ page }) => {
   let deleteCalls = 0
   const state = {
     memories: [
@@ -31,19 +30,8 @@ test('deletes memory from details and restores via undo', async ({ page }) => {
 
     if (request.method() === 'DELETE') {
       deleteCalls += 1
-      deletedSnapshot = state.memories[0]
       state.memories = []
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ deletionId: 'del-undo-1', undoExpiresAt: '2026-02-20T10:20:00Z' }),
-      })
-      return
-    }
-
-    if (request.method() === 'POST' && request.url().includes('/undo')) {
-      state.memories = deletedSnapshot ? [deletedSnapshot] : []
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(deletedSnapshot) })
+      await route.fulfill({ status: 204, body: '' })
       return
     }
 
@@ -55,7 +43,7 @@ test('deletes memory from details and restores via undo', async ({ page }) => {
   await expect(page.getByTestId('memory-details-panel')).toBeVisible()
 
   await page.getByTestId('memory-details-panel').getByRole('button', { name: 'Delete' }).click()
-  const confirm = page.getByTestId('memory-confirm-dialog')
+  const confirm = page.getByTestId('memory-confirm-modal')
   await expect(confirm).toBeVisible()
   await confirm.getByRole('button', { name: 'Delete memory' }).click()
   await expect
@@ -64,7 +52,5 @@ test('deletes memory from details and restores via undo', async ({ page }) => {
     })
     .toBe(1)
   await expect(page.getByLabel('Memory: Delete target')).toHaveCount(0)
-
-  await page.getByRole('button', { name: 'Undo delete' }).click()
-  await expect(page.getByLabel('Memory: Delete target')).toHaveCount(1)
+  await expect(page.getByTestId('memory-undo-toast')).toHaveCount(0)
 })

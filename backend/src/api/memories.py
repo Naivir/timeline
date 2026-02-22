@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session
 
 from src.db import get_session
 from src.models.memory_schemas import (
-    DeleteMemoryResponse,
     MemoryCreateRequest,
     MemoryListResponse,
     MemoryResponse,
     MemoryUpdateRequest,
 )
-from src.services.memory_service import MemoryNotFoundError, MemoryService, UndoExpiredError
+from src.services.memory_service import MemoryNotFoundError, MemoryService
 
 router = APIRouter(prefix='/api/v1/sessions/{session_id}/memories', tags=['memories'])
 
@@ -47,25 +46,14 @@ def update_memory(
         raise HTTPException(status_code=404, detail=f'Memory not found: {error}') from error
 
 
-@router.delete('/{memory_id}', response_model=DeleteMemoryResponse)
+@router.delete('/{memory_id}', status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 def delete_memory(
     session_id: str,
     memory_id: str,
     service: MemoryService = Depends(get_memory_service),
-) -> DeleteMemoryResponse:
+) -> Response:
     try:
-        return service.delete_memory(session_id, memory_id)
+        service.delete_memory(session_id, memory_id)
     except MemoryNotFoundError as error:
         raise HTTPException(status_code=404, detail=f'Memory not found: {error}') from error
-
-
-@router.post('/deletions/{deletion_id}/undo', response_model=MemoryResponse)
-def undo_delete(
-    session_id: str,
-    deletion_id: str,
-    service: MemoryService = Depends(get_memory_service),
-) -> MemoryResponse:
-    try:
-        return service.undo_delete(session_id, deletion_id)
-    except UndoExpiredError as error:
-        raise HTTPException(status_code=410, detail=f'Undo unavailable: {error}') from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

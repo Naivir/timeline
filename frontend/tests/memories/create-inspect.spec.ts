@@ -57,7 +57,7 @@ test('creates memory from header and opens details on selection', async ({ page 
   await page.getByTestId('new-memory-button').click()
   await expect(page.getByText('Click timeline to place memory')).toBeVisible()
 
-  await page.getByTestId('memory-layer').click({ position: { x: 300, y: 120 } })
+  await page.getByTestId('timeline-surface').click({ position: { x: 300, y: 120 } })
   await expect(page.getByTestId('memory-marker').first()).toBeVisible()
   await expect(page.getByTestId('memory-details-panel')).toBeVisible()
 

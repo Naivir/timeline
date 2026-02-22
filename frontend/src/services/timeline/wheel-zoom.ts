@@ -52,7 +52,6 @@ export function shouldApplyVerticalWheelZoom(
     absDelta <= MOMENTUM_SMALL_DELTA &&
     absDelta < state.lastAbsDelta &&
     absDelta <= state.peakAbsDelta * MOMENTUM_RATIO
-
   return {
     apply: !isMomentumTail,
     nextState: {

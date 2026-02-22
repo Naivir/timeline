@@ -94,8 +94,3 @@ class MemoryResponse(BaseModel):
 
 class MemoryListResponse(BaseModel):
     memories: list[MemoryResponse]
-
-
-class DeleteMemoryResponse(BaseModel):
-    deletionId: str
-    undoExpiresAt: datetime

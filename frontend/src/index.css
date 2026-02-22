@@ -20,11 +20,13 @@ body {
 }
 
 .timeline-header {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 12;
   width: min(1120px, calc(100vw - 24px));
-  margin: 12px auto 0;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,8 +39,14 @@ body {
   box-shadow: 0 10px 34px rgb(15 23 42 / 0.08);
 }
 
+.timeline-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .timeline-main {
-  min-height: calc(100vh - 118px);
+  min-height: 100vh;
   flex: 1 1 auto;
 }
 
@@ -79,7 +87,7 @@ body {
 
 .timeline-surface {
   position: relative;
-  height: 260px;
+  height: 520px;
   width: 100%;
   overflow: hidden;
   touch-action: none;
@@ -90,10 +98,15 @@ body {
   cursor: crosshair;
 }
 
+.timeline-surface-resize {
+  cursor: default;
+}
+
 .memory-layer {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 7;
+  pointer-events: none;
 }
 
 .memory-marker {
@@ -108,6 +121,15 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  pointer-events: auto;
+}
+
+.timeline-surface-resize .memory-marker.memory-marker-selected {
+  cursor: grab;
+}
+
+.timeline-surface-resize .memory-marker.memory-marker-selected:active {
+  cursor: grabbing;
 }
 
 .memory-range {
@@ -117,6 +139,7 @@ body {
   background: rgb(15 23 42 / 0.24);
   border: 1px solid rgb(15 23 42 / 0.35);
   cursor: ew-resize;
+  pointer-events: auto;
 }
 
 .memory-range-selected {
@@ -161,6 +184,33 @@ body {
   pointer-events: none;
 }
 
+.memory-hover-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 20;
+  min-width: 140px;
+  max-width: 220px;
+  border: 1px solid rgb(15 23 42 / 0.18);
+  border-radius: 8px;
+  background: rgb(15 23 42 / 0.94);
+  color: white;
+  padding: 8px 10px;
+  pointer-events: none;
+  box-shadow: 0 10px 20px rgb(2 6 23 / 0.32);
+  display: grid;
+  gap: 2px;
+}
+
+.memory-hover-tooltip strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.memory-hover-tooltip span {
+  font-size: 11px;
+  color: rgb(226 232 240);
+}
+
 .timeline-line {
   position: absolute;
   top: 50%;
@@ -171,13 +221,14 @@ body {
   border-radius: 9999px;
   background: rgb(0 0 0);
   box-shadow: 0 0 0 1px var(--timeline-glow), 0 8px 22px rgb(0 0 0 / 0.08);
+  z-index: 4;
 }
 
 .timeline-guide {
   position: absolute;
-  top: calc(50% - 105px);
+  top: calc(50% - 200px);
   width: 1px;
-  height: 210px;
+  height: 400px;
   transform: translateX(-50%);
   background: rgb(0 0 0 / 0.18);
   pointer-events: none;
@@ -195,6 +246,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
+  z-index: 8;
 }
 
 .memory-details {
@@ -365,6 +417,195 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  background: rgb(15 23 42 / 0.3);
+  backdrop-filter: blur(1px);
+}
+
+.confirm-modal-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 47;
+  width: min(460px, 92vw);
+  border-radius: 14px;
+  border: 1px solid rgb(15 23 42 / 0.16);
+  background: white;
+  box-shadow: 0 22px 48px rgb(15 23 42 / 0.22);
+  padding: 18px;
+}
+
+.theme-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.theme-layer-interactive {
+  pointer-events: auto;
+}
+
+.theme-layer-placement {
+  cursor: crosshair;
+}
+
+.theme-draft {
+  position: absolute;
+  border-radius: 10px 10px 0 0;
+  background: rgb(59 130 246 / 0.2);
+  border: 1px solid rgb(59 130 246 / 0.55);
+  pointer-events: none;
+}
+
+.theme-block {
+  position: absolute;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid rgb(15 23 42 / 0.22);
+  background: color-mix(in srgb, var(--theme-color, #3b82f6) 65%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  color: rgb(15 23 42);
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.theme-block-selected {
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.3);
+}
+
+.theme-block-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+}
+
+.theme-handle {
+  position: absolute;
+  background: rgb(255 255 255 / 0.9);
+  border: 1px solid rgb(15 23 42 / 0.42);
+  border-radius: 4px;
+}
+
+.theme-handle-start,
+.theme-handle-end {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 26px;
+  cursor: ew-resize;
+}
+
+.theme-handle-start {
+  left: -4px;
+}
+
+.theme-handle-end {
+  right: -4px;
+}
+
+.theme-handle-height {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.theme-handle-corner-start,
+.theme-handle-corner-end {
+  top: -4px;
+  width: 14px;
+  height: 14px;
+}
+
+.theme-handle-corner-start {
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.theme-handle-corner-end {
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.theme-details {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(960px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+  z-index: 31;
+  background: white;
+  border-radius: 18px;
+  border: 1px solid rgb(15 23 42 / 0.1);
+  box-shadow: 0 24px 46px rgb(15 23 42 / 0.16);
+  padding: 18px;
+}
+
+.theme-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action-sidebar-shell {
+  position: relative;
+}
+
+.action-sidebar {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  border: 1px solid rgb(15 23 42 / 0.14);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 0.14);
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  z-index: 40;
+}
+
+.action-sidebar-button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgb(148 163 184 / 0.4);
+  border-radius: 10px;
+  background: rgb(248 250 252);
+  color: rgb(15 23 42);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-sidebar-button-active {
+  background: rgb(15 23 42);
+  color: white;
+  border-color: rgb(15 23 42);
+}
+
+.action-sidebar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .timeline-fade-left,

@@ -1,14 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 
-from sqlmodel import Session, select
-
-from src.db import engine
-from src.models.memory_deletion import MemoryDeletionRecord
-
-
-def test_undo_window_expiration_returns_410(client) -> None:
+def test_memory_delete_is_final_and_record_is_absent(client) -> None:
     created = client.post(
         '/api/v1/sessions/test-session/memories',
         json={
@@ -20,15 +13,8 @@ def test_undo_window_expiration_returns_410(client) -> None:
     assert created.status_code == 201
 
     deleted = client.delete(f"/api/v1/sessions/test-session/memories/{created.json()['id']}")
-    assert deleted.status_code == 200
-    deletion_id = deleted.json()['deletionId']
+    assert deleted.status_code == 204
 
-    with Session(engine) as session:
-        record = session.get(MemoryDeletionRecord, deletion_id)
-        assert record is not None
-        record.expires_at = datetime.now(UTC) - timedelta(seconds=1)
-        session.add(record)
-        session.commit()
-
-    undo = client.post(f'/api/v1/sessions/test-session/memories/deletions/{deletion_id}/undo')
-    assert undo.status_code == 410
+    listed = client.get('/api/v1/sessions/test-session/memories')
+    assert listed.status_code == 200
+    assert listed.json()['memories'] == []

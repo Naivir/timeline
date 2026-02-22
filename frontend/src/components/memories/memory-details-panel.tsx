@@ -1,8 +1,8 @@
-import * as Dialog from '@radix-ui/react-dialog'
 import { Edit3, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import type { MemoryUpdateRequest, MemoryItem } from '../../services/memories/memory-types'
+import { MemoryConfirmModal } from './memory-confirm-modal'
 
 type MemoryDetailsPanelProps = {
   memory: MemoryItem | null
@@ -75,21 +75,13 @@ export function MemoryDetailsPanel({
   }
 
   return (
-    <Dialog.Root open modal={false} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Content className="memory-details" data-testid="memory-details-panel" aria-label="Memory details">
+    <>
+      <section className="memory-details" data-testid="memory-details-panel" aria-label="Memory details">
           <div className="memory-details-header">
-            <Dialog.Title className="memory-details-title">
-              {isEditing ? 'Edit Memory' : 'Memory Details'}
-            </Dialog.Title>
-            <Dialog.Description className="sr-only">
-              Memory details and editor panel.
-            </Dialog.Description>
-            <Dialog.Close asChild>
-              <button className="memory-secondary-button" type="button" onClick={onClose} aria-label="Close">
-                <X size={14} />
-              </button>
-            </Dialog.Close>
+            <h2 className="memory-details-title">{isEditing ? 'Edit Memory' : 'Memory Details'}</h2>
+            <button className="memory-secondary-button" type="button" onClick={onClose} aria-label="Close">
+              <X size={14} />
+            </button>
           </div>
 
           {isEditing ? (
@@ -186,55 +178,35 @@ export function MemoryDetailsPanel({
               </div>
             </>
           )}
-          {confirmAction ? (
-            <div className="memory-confirm-overlay" data-testid="memory-confirm-overlay">
-              <div className="memory-confirm-dialog" data-testid="memory-confirm-dialog">
-                <h3 className="memory-confirm-title">
-                  {confirmAction === 'delete' ? 'Delete memory?' : 'Cancel new memory?'}
-                </h3>
-                <p className="memory-confirm-body">
-                  {confirmAction === 'delete'
-                    ? 'This will remove the selected memory. You can undo after deleting.'
-                    : 'Are you sure you want to cancel? This new memory will be discarded.'}
-                </p>
-                <div className="memory-form-actions">
-                  <button
-                    className="memory-secondary-button"
-                    type="button"
-                    disabled={isConfirming}
-                    onClick={() => setConfirmAction(null)}
-                  >
-                    Keep editing
-                  </button>
-                  <button
-                    className="memory-primary-button"
-                    type="button"
-                    disabled={isConfirming}
-                    onClick={async () => {
-                      setIsConfirming(true)
-                      try {
-                        if (confirmAction === 'delete' && onDelete) {
-                          await onDelete(memory.id)
-                          onClose()
-                        }
-                        if (confirmAction === 'discard-new' && onDiscardNew) {
-                          await onDiscardNew(memory.id)
-                          onClose()
-                        }
-                        setConfirmAction(null)
-                      } finally {
-                        setIsConfirming(false)
-                      }
-                    }}
-                  >
-                    {confirmAction === 'delete' ? 'Delete memory' : 'Discard memory'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      </section>
+      <MemoryConfirmModal
+        open={confirmAction != null}
+        pending={isConfirming}
+        title={confirmAction === 'delete' ? 'Delete memory?' : 'Cancel new memory?'}
+        body={
+          confirmAction === 'delete'
+            ? 'This will permanently remove the selected memory.'
+            : 'Are you sure you want to cancel? This new memory will be discarded.'
+        }
+        confirmLabel={confirmAction === 'delete' ? 'Delete memory' : 'Discard memory'}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setIsConfirming(true)
+          try {
+            if (confirmAction === 'delete' && onDelete) {
+              await onDelete(memory.id)
+              onClose()
+            }
+            if (confirmAction === 'discard-new' && onDiscardNew) {
+              await onDiscardNew(memory.id)
+              onClose()
+            }
+            setConfirmAction(null)
+          } finally {
+            setIsConfirming(false)
+          }
+        }}
+      />
+    </>
   )
 }

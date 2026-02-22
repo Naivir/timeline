@@ -27,3 +27,18 @@ def reset_db() -> None:
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def sample_theme_payload() -> dict[str, object]:
+    return {
+        'startTime': '2026-03-01T00:00:00Z',
+        'endTime': '2026-03-02T00:00:00Z',
+        'title': 'Travel Theme',
+        'description': 'Trip planning window',
+        'tags': ['travel'],
+        'color': '#3b82f6',
+        'opacity': 0.25,
+        'priority': 100,
+        'heightPx': 72,
+    }

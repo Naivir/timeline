@@ -38,10 +38,24 @@ type MemoryMarkerProps = {
   surfaceHeight: number
   selected: boolean
   onSelect: (memoryId: string) => void
-  onDragStart: (memory: MemoryItem, clientX: number) => void
+  onDragStart: (memory: MemoryItem, clientX: number, clientY: number) => void
+  resizeMode?: boolean
+  onHoverStart?: (memory: MemoryItem, x: number, yRatio: number) => void
+  onHoverEnd?: () => void
 }
 
-export function MemoryMarker({ memory, x, yRatio, surfaceHeight, selected, onSelect, onDragStart }: MemoryMarkerProps) {
+export function MemoryMarker({
+  memory,
+  x,
+  yRatio,
+  surfaceHeight,
+  selected,
+  onSelect,
+  onDragStart,
+  resizeMode = false,
+  onHoverStart,
+  onHoverEnd,
+}: MemoryMarkerProps) {
   const safeYRatio = Math.max(0, Math.min(1, yRatio))
   const branchStyle = computeMemoryBranchStyle(safeYRatio, surfaceHeight)
 
@@ -58,11 +72,14 @@ export function MemoryMarker({ memory, x, yRatio, surfaceHeight, selected, onSel
       }}
       onPointerDown={(event) => {
         event.stopPropagation()
-        if (!selected) return
+        if (!resizeMode) return
         if (event.button !== 0) return
-        onDragStart(memory, event.clientX)
+        onSelect(memory.id)
+        onDragStart(memory, event.clientX, event.clientY)
       }}
-      title={memory.title}
+      onMouseEnter={() => onHoverStart?.(memory, x, safeYRatio)}
+      onMouseLeave={() => onHoverEnd?.()}
+      onBlur={() => onHoverEnd?.()}
       aria-label={`Memory: ${memory.title}`}
     >
       <span className="memory-marker-branch" aria-hidden="true" style={branchStyle} />

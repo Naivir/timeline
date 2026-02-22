@@ -8,8 +8,14 @@ type MemoryRangeProps = {
   surfaceHeight: number
   selected: boolean
   onSelect: (memoryId: string) => void
-  onDragBodyStart: (memory: MemoryItem, clientX: number) => void
-  onDragHandleStart: (memory: MemoryItem, side: 'start' | 'end', clientX: number) => void
+  onDragBodyStart: (memory: MemoryItem, clientX: number, clientY: number) => void
+  onDragHandleStart: (
+    memory: MemoryItem,
+    side: 'start' | 'end',
+    clientX: number,
+    clientY: number,
+  ) => void
+  resizeMode?: boolean
 }
 
 export function MemoryRange({
@@ -22,6 +28,7 @@ export function MemoryRange({
   onSelect,
   onDragBodyStart,
   onDragHandleStart,
+  resizeMode = false,
 }: MemoryRangeProps) {
   const safeYRatio = Math.max(0, Math.min(1, yRatio))
   const left = Math.min(xStart, xEnd)
@@ -39,9 +46,10 @@ export function MemoryRange({
       }}
       onPointerDown={(event) => {
         event.stopPropagation()
-        if (!selected) return
+        if (!resizeMode) return
         if (event.button !== 0) return
-        onDragBodyStart(memory, event.clientX)
+        onSelect(memory.id)
+        onDragBodyStart(memory, event.clientX, event.clientY)
       }}
       aria-label={`Range memory: ${memory.title}`}
       role="button"
@@ -55,8 +63,10 @@ export function MemoryRange({
             aria-label="Adjust range start"
             onPointerDown={(event) => {
               event.stopPropagation()
+              if (!resizeMode) return
               if (event.button !== 0) return
-              onDragHandleStart(memory, 'start', event.clientX)
+              onSelect(memory.id)
+              onDragHandleStart(memory, 'start', event.clientX, event.clientY)
             }}
           />
           <button
@@ -65,8 +75,10 @@ export function MemoryRange({
             aria-label="Adjust range end"
             onPointerDown={(event) => {
               event.stopPropagation()
+              if (!resizeMode) return
               if (event.button !== 0) return
-              onDragHandleStart(memory, 'end', event.clientX)
+              onSelect(memory.id)
+              onDragHandleStart(memory, 'end', event.clientX, event.clientY)
             }}
           />
         </>

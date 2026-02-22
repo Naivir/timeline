@@ -56,11 +56,7 @@ test('canceling initial memory creation confirms discard and removes memory', as
         const index = state.findIndex((item) => item.id === createdMemoryId)
         if (index >= 0) state.splice(index, 1)
       }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ deletionId: 'del-1', undoExpiresAt: '2026-02-20T10:16:00Z' }),
-      })
+      await route.fulfill({ status: 204, body: '' })
       return
     }
 
@@ -69,11 +65,11 @@ test('canceling initial memory creation confirms discard and removes memory', as
 
   await page.goto('/')
   await page.getByTestId('new-memory-button').click()
-  await page.getByTestId('memory-layer').click({ position: { x: 360, y: 160 } })
+  await page.getByTestId('timeline-surface').click({ position: { x: 360, y: 160 } })
 
   await expect(page.getByRole('heading', { name: 'Edit Memory' })).toBeVisible()
   await page.getByRole('button', { name: 'Cancel' }).click()
-  const confirm = page.getByTestId('memory-confirm-dialog')
+  const confirm = page.getByTestId('memory-confirm-modal')
   await expect(confirm).toBeVisible()
   await confirm.getByRole('button', { name: 'Discard memory' }).click()
 
