@@ -1,0 +1,27 @@
+# Node / TypeScript
+node_modules/
+.npm-cache/
+dist/
+build/
+*.log
+.env*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.uv-cache/
+*.egg-info/
+
+# Test / coverage
+coverage/
+.pytest_cache/
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/

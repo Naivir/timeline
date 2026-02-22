@@ -1,0 +1,133 @@
+openapi: 3.1.0
+info:
+  title: Timeline Foundation API
+  version: 0.1.0
+  description: Read-only API for baseline timeline rendering and service health.
+servers:
+  - url: http://localhost:8000
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+  /api/v1/timeline:
+    get:
+      summary: Get base timeline payload
+      operationId: getTimeline
+      responses:
+        '200':
+          description: Timeline payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimelineResponse'
+        '503':
+          description: Service temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    TimelineResponse:
+      type: object
+      required: [timeline, baseline, eventPlaceholders, meta]
+      properties:
+        timeline:
+          $ref: '#/components/schemas/Timeline'
+        baseline:
+          $ref: '#/components/schemas/TimelineBaseline'
+        eventPlaceholders:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineEventPlaceholder'
+        meta:
+          type: object
+          required: [requestId]
+          properties:
+            requestId:
+              type: string
+    Timeline:
+      type: object
+      required: [id, title, startLabel, endLabel, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        startLabel:
+          type: string
+        endLabel:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TimelineBaseline:
+      type: object
+      required: [orientation, positionPercent, thicknessPx, lengthPercent]
+      properties:
+        orientation:
+          type: string
+          enum: [horizontal]
+        positionPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+        thicknessPx:
+          type: number
+          minimum: 1
+          maximum: 12
+        lengthPercent:
+          type: number
+          minimum: 10
+          maximum: 100
+    TimelineEventPlaceholder:
+      type: object
+      required: [id, timeLabel, positionPercent, status]
+      properties:
+        id:
+          type: string
+        timeLabel:
+          type: string
+        positionPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+        status:
+          type: string
+          enum: [empty, reserved]
+        metadata:
+          type: object
+          additionalProperties: true
+    ServiceStatus:
+      type: object
+      required: [status, message, checkedAt]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        message:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
